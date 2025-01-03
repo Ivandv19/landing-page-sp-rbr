@@ -1,0 +1,38 @@
+name: Release
+on:
+  push:
+    branches:
+      - develop # Ejecutar el flujo de trabajo en eventos push a la rama develop
+
+permissions:
+  contents: read # Requerido para actions/checkout
+
+jobs:
+  release:
+    name: Semantic Release
+    runs-on: ubuntu-latest # Usar el entorno más reciente de Ubuntu
+    permissions:
+      contents: write # Requerido para publicar un release en GitHub
+      issues: write # Requerido para comentar en issues liberados
+      pull-requests: write # Requerido para comentar en pull requests liberados
+      id-token: write # Requerido para habilitar el uso de OIDC para la procedencia de npm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4 # Clonar el repositorio
+        with:
+          fetch-depth: 0 # Obtener todo el historial para todas las ramas y etiquetas
+      - name: Setup Node.js
+        uses: actions/setup-node@v4 # Configurar el entorno de Node.js
+        with:
+          node-version: "lts/*" # Usar la última versión LTS de Node.js
+      - name: Install pnpm
+        run: npm install -g pnpm # Instalar pnpm globalmente
+      - name: Install dependencies
+        run: pnpm install # Instalar las dependencias del proyecto usando pnpm
+      - name: Verify the integrity of provenance attestations and registry signatures for installed dependencies
+        run: pnpm audit signatures # Verificar la integridad de las dependencias instaladas
+      - name: Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Token de GitHub para autenticación
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }} # Token de NPM para autenticación
+        run: pnpm exec semantic-release # Ejecutar semantic-release para publicar el release
